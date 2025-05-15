@@ -1,0 +1,113 @@
+import React, { useState } from "react";
+import { Bar, Pie } from "react-chartjs-2";
+import { Chart, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from "chart.js";
+
+Chart.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+
+export default function App() {
+  const [data, setData] = useState([]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        setData(parsed);
+      } catch (err) {
+        alert("Invalid JSON file.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const monoColorCount = data.reduce(
+    (acc, item) => {
+      const type = item["TYPE MONO"]?.COLOR?.trim().toUpperCase();
+      if (type === "MONO") acc["MONO"]++;
+      else if (type === "COLOR" || type === "COLOR ") acc["COLOR"]++;
+      return acc;
+    },
+    { MONO: 0, COLOR: 0 }
+  );
+
+  const connectionTypeCount = data.reduce(
+    (acc, item) => {
+      const conn = item.NETWORK?.USB?.toUpperCase() || "UNKNOWN";
+      acc[conn] = (acc[conn] || 0) + 1;
+      return acc;
+    },
+    {}
+  );
+
+  const topDifference = [...data]
+    .filter((item) => typeof item.DIFFERENCE === "number")
+    .sort((a, b) => b.DIFFERENCE - a.DIFFERENCE)
+    .slice(0, 10);
+
+  return (
+    <div className="p-4 max-w-5xl mx-auto">
+      <h1 className="text-3xl font-bold mb-4">Printer Usage Dashboard</h1>
+
+      <input type="file" accept="application/JSON" onChange={handleFileUpload} className="mb-4" />
+
+      {data.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white shadow p-4 rounded-xl">
+            <h2 className="text-xl font-semibold mb-2">Mono vs Color</h2>
+            <Pie
+              data={{
+                labels: ["Mono", "Color"],
+                datasets: [
+                  {
+                    data: [monoColorCount.MONO, monoColorCount.COLOR],
+                    backgroundColor: ["#3b82f6", "#f87171"],
+                  },
+                ],
+              }}
+            />
+          </div>
+
+          <div className="bg-white shadow p-4 rounded-xl">
+            <h2 className="text-xl font-semibold mb-2">Connection Type</h2>
+            <Pie
+              data={{
+                labels: Object.keys(connectionTypeCount),
+                datasets: [
+                  {
+                    data: Object.values(connectionTypeCount),
+                    backgroundColor: ["#10b981", "#f59e0b", "#6366f1"],
+                  },
+                ],
+              }}
+            />
+          </div>
+
+          <div className="md:col-span-2 bg-white shadow p-4 rounded-xl">
+            <h2 className="text-xl font-semibold mb-2">Top 10 Devices by Usage Difference</h2>
+            <Bar
+              data={{
+                labels: topDifference.map((d) => `${d["COMPANY NAME"]} - ${d["DEPARTMENT"]}`),
+                datasets: [
+                  {
+                    label: "Difference",
+                    data: topDifference.map((d) => d.DIFFERENCE),
+                    backgroundColor: "#3b82f6",
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: {
+                    display: false,
+                  },
+                },
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
