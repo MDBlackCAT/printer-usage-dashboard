@@ -1,0 +1,6 @@
+git init
+git add .
+git commit -m "Initial commit - printer usage dashboard"
+gh repo create printer-usage-dashboard --public --source=. --remote=origin --push
+git remote -v
+origin  https://github.com/yourusername/printer-usage-dashboard.git (fetch)
